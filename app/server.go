@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
+	"strings"
 	// Uncomment this block to pass the first stage
 	// "net"
 	// "os"
@@ -19,19 +21,46 @@ func main() {
 		os.Exit(1)
 	}
 
-	conn, err := l.Accept()
-	if err != nil {
-		fmt.Println("Error accepting connection: ", err.Error())
-		os.Exit(1)
-	}
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
 
-	HandleConnection(conn)
+		HandleConnection(conn)
+	}
 }
 
 func HandleConnection(conn net.Conn) {
-	response := "HTTP/1.1 200 OK\r\n\r\n"
-	if _, err := conn.Write([]byte(response)); err != nil {
-		fmt.Println("Failed to write response, ", err.Error())
+	defer func(conn net.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println("Failed to close connection")
+			os.Exit(1)
+		}
+	}(conn)
+
+	buf := make([]byte, 1024)
+	n, err := conn.Read(buf)
+	if err != nil {
+		log.Println("Failed to read from connection")
+		os.Exit(1)
+	}
+
+	request := string(buf[:n])
+	lines := strings.Split(request, "\r\n")
+	start := lines[0]
+	path := strings.Split(start, " ")[1]
+
+	response := "HTTP/1.1 404 NOT FOUND\r\n\r\n"
+	if path == "/" {
+		response = "HTTP/1.1 200 OK\r\n\r\n"
+	}
+
+	_, err = conn.Write([]byte(response))
+	if err != nil {
+		log.Println("Failed to write to connection")
 		os.Exit(1)
 	}
 }
