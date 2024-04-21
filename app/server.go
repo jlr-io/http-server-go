@@ -19,9 +19,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = l.Accept()
+	conn, err := l.Accept()
 	if err != nil {
 		fmt.Println("Error accepting connection: ", err.Error())
+		os.Exit(1)
+	}
+
+	HandleConnection(conn)
+}
+
+func HandleConnection(conn net.Conn) {
+	response := "HTTP/1.1 200 OK\r\n\r\n"
+	if _, err := conn.Write([]byte(response)); err != nil {
+		fmt.Println("Failed to write response, ", err.Error())
 		os.Exit(1)
 	}
 }
