@@ -6,9 +6,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	// Uncomment this block to pass the first stage
-	// "net"
-	// "os"
 )
 
 func main() {
@@ -48,19 +45,31 @@ func HandleConnection(conn net.Conn) {
 		os.Exit(1)
 	}
 
-	request := string(buf[:n])
-	lines := strings.Split(request, "\r\n")
-	start := lines[0]
-	path := strings.Split(start, " ")[1]
+	message := string(buf[:n])
+	request := ParseHttpRequest(message)
+	response := HttpResponse{}
 
-	response := "HTTP/1.1 404 NOT FOUND\r\n\r\n"
-	if path == "/" {
-		response = "HTTP/1.1 200 OK\r\n\r\n"
+	if strings.HasPrefix(request.Target, "/echo/") {
+		response = Echo(request)
+	} else if request.Target == "/" {
+		response = new200Response()
+	} else {
+		response = new404Response()
 	}
 
-	_, err = conn.Write([]byte(response))
+	_, err = conn.Write(response.Encode())
 	if err != nil {
 		log.Println("Failed to write to connection")
 		os.Exit(1)
 	}
+}
+
+func Echo(request HttpRequest) HttpResponse {
+	response := new200Response()
+	response.Body = strings.TrimPrefix(request.Target, "/echo/")
+	response.Headers = Headers{
+		ContentType:   PlainText,
+		ContentLength: fmt.Sprintf("%d", len(response.Body)),
+	}
+	return response
 }
