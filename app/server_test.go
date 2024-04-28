@@ -28,7 +28,7 @@ func TestEcho(t *testing.T) {
 		},
 	}
 
-	got := Echo(test.request)
+	got := HandleEcho(test.request)
 
 	expect := test.expect
 

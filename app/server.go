@@ -50,9 +50,13 @@ func HandleConnection(conn net.Conn) {
 	response := HttpResponse{}
 
 	if strings.HasPrefix(request.Target, "/echo/") {
-		response = Echo(request)
-	} else if request.Target == "/" {
-		response = new200Response()
+		response = HandleEcho(request)
+	} else if strings.HasPrefix(request.Target, "/") {
+		if request.Target == "/" {
+			response = new200Response()
+		} else {
+			response = HandleHeader(request)
+		}
 	} else {
 		response = new404Response()
 	}
@@ -64,7 +68,7 @@ func HandleConnection(conn net.Conn) {
 	}
 }
 
-func Echo(request HttpRequest) HttpResponse {
+func HandleEcho(request HttpRequest) HttpResponse {
 	response := new200Response()
 	response.Body = strings.TrimPrefix(request.Target, "/echo/")
 	response.Headers = Headers{
@@ -72,4 +76,19 @@ func Echo(request HttpRequest) HttpResponse {
 		ContentLength: fmt.Sprintf("%d", len(response.Body)),
 	}
 	return response
+}
+
+func HandleHeader(request HttpRequest) HttpResponse {
+	header := strings.TrimPrefix(request.Target, "/")
+	if headerValue, exists := request.Headers[header]; exists {
+		response := new200Response()
+		response.Body = headerValue
+		response.Headers = Headers{
+			ContentType:   PlainText,
+			ContentLength: fmt.Sprintf("%d", len(response.Body)),
+		}
+		return response
+	} else {
+		return new404Response()
+	}
 }

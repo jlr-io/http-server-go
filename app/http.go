@@ -50,7 +50,7 @@ func (r *HttpRequest) parseStart(start string) {
 
 func (r *HttpRequest) parseHeader(line string) {
 	split := strings.SplitN(line, ":", 2)
-	r.Headers[split[0]] = strings.TrimSpace(split[1])
+	r.Headers[strings.ToLower(split[0])] = strings.TrimSpace(split[1])
 }
 
 func (r *HttpRequest) parseHeaders(headerLines []string) {
