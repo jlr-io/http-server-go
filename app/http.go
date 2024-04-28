@@ -31,14 +31,14 @@ func ParseHttpRequest(message string) HttpRequest {
 		Headers: make(map[string]string),
 	}
 	lines := strings.Split(message, "\r\n")
-	lines = lines[:len(lines)-1] // remove empty line at the end
 	request.parseStart(lines[0])
-	for _, l := range lines[1:] {
+	for _, l := range lines[1 : len(lines)-1] {
 		if l == "" || l == "\r\n" {
 			break
 		}
 		request.parseHeader(l)
 	}
+	request.Body = lines[len(lines)-1]
 	return request
 }
 func (r *HttpRequest) parseStart(start string) {
@@ -79,6 +79,15 @@ func new200Response() HttpResponse {
 		Version:    Http1,
 		StatusCode: "200",
 		StatusText: "OK",
+		Headers:    make(Headers),
+	}
+}
+
+func new201Response() HttpResponse {
+	return HttpResponse{
+		Version:    Http1,
+		StatusCode: "201",
+		StatusText: "CREATED",
 		Headers:    make(Headers),
 	}
 }

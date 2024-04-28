@@ -104,15 +104,27 @@ func HandleHeader(request HttpRequest) HttpResponse {
 func HandleFile(request HttpRequest, dir string) HttpResponse {
 	file := strings.TrimPrefix(request.Target, "/files/")
 	filePath := path.Join(dir, file)
-	contents, err := os.ReadFile(filePath)
-	if err != nil {
+
+	if request.Method == "GET" {
+		contents, err := os.ReadFile(filePath)
+		if err != nil {
+			return new404Response()
+		}
+		response := new200Response()
+		response.Body = string(contents)
+		response.Headers = Headers{
+			ContentType:   "application/octet-stream",
+			ContentLength: fmt.Sprintf("%d", len(response.Body)),
+		}
+		return response
+	} else if request.Method == "POST" {
+		err := os.WriteFile(filePath, []byte(request.Body), 0666)
+		if err != nil {
+			return new404Response()
+		} else {
+			return new201Response()
+		}
+	} else {
 		return new404Response()
 	}
-	response := new200Response()
-	response.Body = string(contents)
-	response.Headers = Headers{
-		ContentType:   "application/octet-stream",
-		ContentLength: fmt.Sprintf("%d", len(response.Body)),
-	}
-	return response
 }
