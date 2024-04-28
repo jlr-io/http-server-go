@@ -1,14 +1,20 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"path"
 	"strings"
 )
 
 func main() {
+	var dir string
+	flag.StringVar(&dir, "directory", "", "path to file directory")
+	flag.Parse()
+
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
 	fmt.Println("Logs from your program will appear here!")
 
@@ -25,11 +31,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		go HandleConnection(conn)
+		go HandleConnection(conn, dir)
 	}
 }
 
-func HandleConnection(conn net.Conn) {
+func HandleConnection(conn net.Conn, dir string) {
 	defer func(conn net.Conn) {
 		err := conn.Close()
 		if err != nil {
@@ -49,7 +55,9 @@ func HandleConnection(conn net.Conn) {
 	request := ParseHttpRequest(message)
 	response := HttpResponse{}
 
-	if strings.HasPrefix(request.Target, "/echo/") {
+	if strings.HasPrefix(request.Target, "/files") {
+		response = HandleFile(request, dir)
+	} else if strings.HasPrefix(request.Target, "/echo") {
 		response = HandleEcho(request)
 	} else if strings.HasPrefix(request.Target, "/") {
 		if request.Target == "/" {
@@ -91,4 +99,20 @@ func HandleHeader(request HttpRequest) HttpResponse {
 	} else {
 		return new404Response()
 	}
+}
+
+func HandleFile(request HttpRequest, dir string) HttpResponse {
+	file := strings.TrimPrefix(request.Target, "/files/")
+	filePath := path.Join(dir, file)
+	contents, err := os.ReadFile(filePath)
+	if err != nil {
+		return new404Response()
+	}
+	response := new200Response()
+	response.Body = string(contents)
+	response.Headers = Headers{
+		ContentType:   "application/octet-stream",
+		ContentLength: fmt.Sprintf("%d", len(response.Body)),
+	}
+	return response
 }
